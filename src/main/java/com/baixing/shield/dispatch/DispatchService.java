@@ -12,5 +12,4 @@ public interface DispatchService {
 
     void dispatch(Message message);
 
-
 }

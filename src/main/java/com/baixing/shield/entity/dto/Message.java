@@ -6,7 +6,7 @@ import java.util.Date;
 
 @Data
 public class Message {
-    private Date sendTime;
+    private Long sendTime;
     private Long expiredTime;
     private String type;
     private String ip;

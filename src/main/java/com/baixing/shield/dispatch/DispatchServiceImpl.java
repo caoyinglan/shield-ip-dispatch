@@ -14,12 +14,15 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.baixing.shield.enums.Constants.CACHE_IP_PREFIX;
 import static com.baixing.shield.enums.Constants.DEFAULT_EXPIRED_TIME;
@@ -64,7 +67,6 @@ public class DispatchServiceImpl implements DispatchService{
         return new StringRedisTemplate(factory);
     }
 
-
     @Override
     public void dispatch(Message message) {
         log.info("dispatch message : {}", message);
@@ -79,20 +81,27 @@ public class DispatchServiceImpl implements DispatchService{
         String messageJson = JsonMapper.INSTANCE.toJson(message);
         String key = CACHE_IP_PREFIX + ip;
 
+
         switch (messageType){
             case auto:
                 String preJson = redisTemplate.opsForValue().get(key);
+
+                log.info("preJson:{}", preJson);
+
                 if (Func.isNotBlank(preJson)) {
                     Message preMessage = JsonMapper.INSTANCE.fromJson(preJson, Message.class);
+
+                    log.info("preMessage: {}", preMessage);
+
                     if(Func.equals(preMessage.getType(),MessageType.auto.name()) && message.getScore() >= preMessage.getScore()){
-                        redisTemplate.opsForValue().set(key, messageJson, expiredTime);
+                        redisTemplate.opsForValue().set(key, messageJson, expiredTime, TimeUnit.SECONDS);
                     }
                 }else{
-                    redisTemplate.opsForValue().set(key, messageJson, expiredTime);
+                    redisTemplate.opsForValue().set(key, messageJson, expiredTime,TimeUnit.SECONDS);
                 }
                 break;
             case manual:
-                redisTemplate.opsForValue().set(key, messageJson, expiredTime);
+                redisTemplate.opsForValue().set(key, messageJson, expiredTime,TimeUnit.SECONDS);
                 break;
             case delete:
                 redisTemplate.delete(key);
