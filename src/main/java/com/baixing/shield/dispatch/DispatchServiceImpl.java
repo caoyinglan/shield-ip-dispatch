@@ -85,9 +85,6 @@ public class DispatchServiceImpl implements DispatchService{
         switch (messageType){
             case auto:
                 String preJson = redisTemplate.opsForValue().get(key);
-
-                log.info("preJson:{}", preJson);
-
                 if (Func.isNotBlank(preJson)) {
                     Message preMessage = JsonMapper.INSTANCE.fromJson(preJson, Message.class);
 

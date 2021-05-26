@@ -25,7 +25,7 @@ public class Producer {
 
     }
 
-    public Message buildMessage(String ip, Integer score, String type, String service) {
+    public Message buildMessage(String ip, Double score, String type, String service) {
         Message message = new Message();
         message.setSendTime(System.currentTimeMillis());
         message.setExpiredTime(3600L);

@@ -10,6 +10,6 @@ public class Message {
     private Long expiredTime;
     private String type;
     private String ip;
-    private Integer score;
+    private Double score;
     private String service;
 }
