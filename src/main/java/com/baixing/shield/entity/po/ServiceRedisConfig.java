@@ -12,7 +12,7 @@ import javax.persistence.*;
 @Where(clause = "is_deleted = 0")        //筛选出未被删除的
 public class ServiceRedisConfig extends BaseEntity {
     //父类已经有id了
-    private String service;
+    private String bizIdentity;
     private String redisHost;
     private Integer database;
     private Integer redisPort;

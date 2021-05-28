@@ -13,6 +13,7 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -39,13 +40,26 @@ public class DispatchServiceImpl implements DispatchService{
     public void init(){
         log.info("=========RedisTemplateMap init==========");
         List<ServiceRedisConfig> redisConfigs = redisConfigDao.findAll();
+        buildRedisConfig(redisConfigs);
+    }
+
+    private void buildRedisConfig(List<ServiceRedisConfig> redisConfigs) {
         for (ServiceRedisConfig redisConfig : redisConfigs) {
-            String service = redisConfig.getService();
             String host = redisConfig.getRedisHost();
             Integer port = redisConfig.getRedisPort();
             Integer database = redisConfig.getDatabase();
             StringRedisTemplate redisTemplate = getStringRedisTemplate(host,port,database);
-            redisTemplateMap.put(service, redisTemplate);
+            redisTemplateMap.put(redisConfig.getBizIdentity(), redisTemplate);
+        }
+    }
+
+    //如果数据库有新条目，能立即监测到
+    @Scheduled(cron = "0/60 * * * * ?")      //每10秒reload一次
+    public void reload(){
+        log.info("=========redisTemplateMap reload==========");
+        List<ServiceRedisConfig> redisConfigs = redisConfigDao.findAll();
+        if (redisConfigs.size() != redisTemplateMap.size()){
+            buildRedisConfig(redisConfigs);
         }
     }
 
@@ -69,7 +83,6 @@ public class DispatchServiceImpl implements DispatchService{
         log.info("dispatch message : {}", message);
         String service = message.getService();
         StringRedisTemplate redisTemplate = redisTemplateMap.get(service);
-        ServiceRedisConfig redisConfig = redisConfigDao.findByService(service);
         String type = message.getType();
         MessageType messageType = MessageType.valueOf(type);
         String ip = message.getIp();
@@ -78,15 +91,11 @@ public class DispatchServiceImpl implements DispatchService{
         String messageJson = JsonMapper.INSTANCE.toJson(message);
         String key = CACHE_IP_PREFIX + ip;
 
-
         switch (messageType){
             case auto:
                 String preJson = redisTemplate.opsForValue().get(key);
                 if (Func.isNotBlank(preJson)) {
                     Message preMessage = JsonMapper.INSTANCE.fromJson(preJson, Message.class);
-
-                    log.info("preMessage: {}", preMessage);
-
                     if(Func.equals(preMessage.getType(),MessageType.auto.name()) && message.getScore() >= preMessage.getScore()){
                         redisTemplate.opsForValue().set(key, messageJson, expiredTime, TimeUnit.SECONDS);
                     }
@@ -101,6 +110,5 @@ public class DispatchServiceImpl implements DispatchService{
                 redisTemplate.delete(key);
                 break;
         }
-
     }
 }

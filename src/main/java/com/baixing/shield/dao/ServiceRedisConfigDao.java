@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ServiceRedisConfigDao extends JpaRepository<ServiceRedisConfig, Long> {
 
-    ServiceRedisConfig findByService(String service);
+    ServiceRedisConfig findByBizIdentity(String biz_identity);
 
 
 }
